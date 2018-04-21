@@ -1,9 +1,13 @@
 #!/bin/bash
 
-BITCOINCLI=/home/bitcoind/bin/bitcoin-cli
+BITCOINCLI=/home/bitcoin/bin/bitcoin-cli
 MEMPOOLHOME=/home/mempool/mempool
+TMPFILE=/dev/shm/mempool-btc/rawdump.txt
+mkdir -p /dev/shm/mempool-btc
 
 cd $MEMPOOLHOME
-$BITCOINCLI getrawmempool true | perl mempool-sql.pl
+rm -f $TMPFILE
+$BITCOINCLI getrawmempool true > $TMPFILE
+perl mempool-sql.pl < $TMPFILE
 
 ./mkdata.sh

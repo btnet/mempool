@@ -17,12 +17,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-$dbtype	= "sqlite";
-$dbdatabase = "/home/mempool/mempool/mempool.s3db";
+$dbtype	= "mysql";
+$dbdatabase = "dbname=btc_mempool;host=localhost";
 $dbdsn = "$dbtype:$dbdatabase";
-$dbuser = "";
-$dbpass = "";
+$dbuser = "www";
+$dbpass = "<redacted>";
 $dboptions = array();
+
+$feelevels = 46;
 
 try {
     $db = new PDO($dbdsn, $dbuser, $dbpass, $dboptions);
@@ -40,27 +42,23 @@ try {
     if ($increment <= 0) {
         $increment = 1;
     }
-    $query = $db->prepare("SELECT * FROM mempool WHERE time >= :start AND time < :end ORDER BY time");
+    $query = $db->prepare("SELECT * FROM mempool WHERE time >= :start AND time < :end and (time DIV 60) MOD :increment = 0 ORDER BY time");
 
-    $query->execute(array(':start' => $start, ':end' => $end));
+    $query->execute(array(':start' => $start, ':end' => $end, ':increment' => $increment));
     header("Content-Type: application/json; charset=UTF-8");
     echo 'call([';
     $comma="";
-    $ctr = $increment;
     while ($row = $query->fetch(PDO::FETCH_NUM)) {
-    	if ($ctr > 1) {
-	    $ctr--;
-	    continue;
-	}
-	for ($i = 0; $i < 3*36+1; $i++) {
-	    if (!isset($row[1+$i])) { $row[1+$i] = 0; };
+	for ($i = 0; $i < 3*$feelevels+1; $i++) {
+	    if (!isset($row[$i])) {
+                $row[$i] = 0;
+            }
 	}
     	echo $comma.'['.$row[0].',['.
-	     join(',', array_slice($row, 1, 36)).'],['.
-	     join(',', array_slice($row, 37, 36)).'],['.
-	     join(',', array_slice($row, 73, 36)).']]';
+	     join(',', array_slice($row, 1, $feelevels)).'],['.
+	     join(',', array_slice($row, 1 + $feelevels, $feelevels)).'],['.
+	     join(',', array_slice($row, 1 + 2*$feelevels, $feelevels)).']]';
 	$comma = ",\n";
-	$ctr = $increment;
     }
     echo "]);\n";
     exit;
